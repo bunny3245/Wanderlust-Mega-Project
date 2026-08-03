@@ -44,14 +44,13 @@ pipeline {
   stages {
     stage('Checkout') {
       steps {
-        // This pipeline is pasted into the job's own script box, so nothing is configured for it — a job created
-        // that way has NO source, and every stage below would run in an empty workspace without this.
+        // `checkout scm` because this job is a *Pipeline script from SCM*: Jenkins already knows the repository
+        // and the credential, having cloned it to read this very file. Naming them again here would be a second
+        // source of truth that can disagree with the job — and on a multibranch project it would override the
+        // branch Jenkins chose and build the wrong ref.
         //
-        // Better, when you can: put this file in the repository and set the job to *Pipeline script from SCM* with
-        // Script Path `jenkins/ci-pipeline.groovy`. Then Jenkins does the checkout and this stage becomes
-        // `checkout scm` — one place that knows the repository instead of two that can disagree.
-        git branch: 'main',
-            url: 'https://github.com/shahzaib-rehman005/Wanderlust-Mega-Project.git'
+        // Configured in the job as:  Definition = Pipeline script from SCM,  Script Path = jenkins/ci-pipeline.groovy
+        checkout scm
       }
     }
     stage('Install') {
@@ -63,12 +62,12 @@ pipeline {
       }
     }
   }
-  // Test reports are not published — see the notes shown with this template. With the JUnit plugin
-  // installed, add to `post { always { … } }`:
-  //
-  //   junit allowEmptyResults: true, testResults: '**/junit*.xml, **/test-results/**/*.xml'
-  //
-  // A stale workspace produces failures that belong to the previous build. `cleanWs()` fixes that, and
-  // needs the Workspace Cleanup plugin — which this controller does not have, so HealCI did not add a step that
-  // would fail with "No such DSL method".
+  post {
+    always {
+      // allowEmptyResults, because a repository with no tests yet is not a broken pipeline.
+      junit allowEmptyResults: true, testResults: '**/junit*.xml, **/test-results/**/*.xml'
+      // A stale workspace produces failures that belong to the last build, not this one.
+      cleanWs()
+    }
+  }
 }
