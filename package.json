@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "concurrently": "^9.0.0"
+    "concurrently": "^8.2.2"
   },
   "scripts": {
     "start-frontend": "cd frontend && npm run dev",
